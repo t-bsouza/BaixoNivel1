@@ -19,7 +19,7 @@ Image *readPPM(const char *filename);
 void writePPM(const char *filename, Image *img);
 Image *convertToGray(Image *img);
 Image *convertToNegative(Image *img);
-Image *convertToXRay(Image *img);
+Image *convertToXRay(Image *img, float intensityFactor);
 Image *convertToSepia(Image *img);
 Image *rotate90(Image *img);
 Image *rotate180(Image *img);
@@ -29,6 +29,7 @@ int main() {
     char filename[100];
     char outputFilename[150];
     int choice;
+    float intensityFactor = 1.5; // Fator de intensidade inicial para raio-X
     Image *img = NULL, *processedImg = NULL;
 
     printf("Processador de Imagens PPM\n");
@@ -69,6 +70,17 @@ int main() {
     printf("Escolha uma opção (1-6): ");
     scanf("%d", &choice);
 
+    // Se a opção for raio-X, perguntar pelo fator de intensidade
+    if (choice == 3) {
+        printf("Digite o fator de intensidade para raio-X (1.0 a 2.0): ");
+        scanf("%f", &intensityFactor);
+        if (intensityFactor < 1.0) {
+            intensityFactor = 1.0;
+        } else if (intensityFactor > 2.0) {
+            intensityFactor = 2.0;
+        }
+    }
+
     // Processar conforme a escolha
     switch (choice) {
         case 1:
@@ -80,7 +92,7 @@ int main() {
             strcpy(outputFilename, "negative_");
             break;
         case 3:
-            processedImg = convertToXRay(img);
+            processedImg = convertToXRay(img, intensityFactor);
             strcpy(outputFilename, "xray_");
             break;
         case 4:
@@ -201,16 +213,17 @@ Image *convertToNegative(Image *img) {
 }
 
 // Converter para efeito raio-X
-Image *convertToXRay(Image *img) {
+Image *convertToXRay(Image *img, float intensityFactor) {
     Image *xray = (Image *)malloc(sizeof(Image));
     xray->width = img->width;
     xray->height = img->height;
     xray->data = (Pixel *)malloc(xray->width * xray->height * sizeof(Pixel));
     
     for (int i = 0; i < img->width * img->height; i++) {
-        unsigned char inverted = 255 - (unsigned char)(0.299 * img->data[i].r + 
-                                                       0.587 * img->data[i].g + 
-                                                       0.114 * img->data[i].b);
+        unsigned char grayValue = (unsigned char)(0.299 * img->data[i].r + 
+                                                 0.587 * img->data[i].g + 
+                                                 0.114 * img->data[i].b);
+        unsigned char inverted = 255 - (unsigned char)(pow((float)grayValue / 255.0, intensityFactor) * 255.0);
         xray->data[i].r = xray->data[i].g = xray->data[i].b = inverted;
     }
     
